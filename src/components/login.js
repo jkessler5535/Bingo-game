@@ -1,36 +1,48 @@
-import React, { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import HeaderImg from '../assets/images/header-img';
 import BingoIcon from '../assets/images/bingo-logo';
 import Sponsors from '../assets/images/sponsors';
+import { SupabaseContext } from '../SupabaseContext';
 
 const LoginPage = () => {
   const [twitterHandle, setTwitterHandle] = useState('');
   const [telegram, setTelegram] = useState('');
-  const [error, setError] = useState('');
+  const [name, setName] = useState('');
+  const [title, setTitle] = useState('');
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const twitter = localStorage.getItem("twitterHandle")
-    const tg = localStorage.getItem("telegram")
-
-    if (twitter && tg) {
-      navigate('/bingo')
-    }
-  }, [navigate])
+  const { supabaseClient } = useContext(SupabaseContext);
 
 
-  const handleLogin = (e) => {
+  // useEffect(() => {
+  //   const twitter = localStorage.getItem("twitterHandle")
+  //   const tg = localStorage.getItem("telegram")
+
+  //   if (twitter && tg) {
+  //     navigate('/bingo')
+  //   }
+  // }, [navigate])
+
+  const handleLogin = async (e) => {
     e.preventDefault();
 
     if (twitterHandle && telegram) {
       localStorage.setItem('twitterHandle', twitterHandle);
       localStorage.setItem('telegram', telegram);
-      setError("");
+
+      const { error } = await supabaseClient
+        .from("bingo_players")
+        .insert({
+          telegram: telegram,
+          twitter: twitterHandle
+        }).select().single()
+
+      if (error) {
+        console.error("Problem inserting into supabase: ", error);
+      }
+
       navigate('/game-directions');
-    } else {
-      setError("Both inputs must be filled");
     }
   };
 
@@ -50,7 +62,7 @@ const LoginPage = () => {
         <input
           type="text"
           name="telegram"
-          placeholder="telegram..."
+          placeholder="@ggp_steven"
           className="login-input"
           onChange={(e) => setTelegram(e.target.value)}
         />
@@ -61,21 +73,16 @@ const LoginPage = () => {
         <input
           type="text"
           name="twitterHandle"
-          placeholder="@twitter_handle..."
+          placeholder="@gogopool_"
           className="login-input"
           value={twitterHandle}
           onChange={(e) => setTwitterHandle(e.target.value)}
         />
 
         <p>All of your information is kept private and we will not share it with anyone.</p>
-        <button type="submit" className="login-button">
+        <button disabled={!twitterHandle && !telegram} type="submit" className="login-button">
           Continue
         </button>
-        {error && (
-          <div className='error-msg'>
-            {error}
-          </div>
-        )}
 
       </form>
       <div className="line bottom-line">
